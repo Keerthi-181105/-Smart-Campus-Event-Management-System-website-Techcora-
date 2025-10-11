@@ -1,3 +1,10 @@
+<img width="947" height="866" alt="Screenshot 2025-10-11 141155" src="https://github.com/user-attachments/assets/08d64c75-99ff-40c2-a092-9078048190db" />
+<img width="748" height="601" alt="Screenshot 2025-10-11 141144" src="https://github.com/user-attachments/assets/ae469ba2-8a60-4f93-a51d-96a151aa59ea" />
+<img width="1884" height="925" alt="Screenshot 2025-10-11 141132" src="https://github.com/user-attachments/assets/684c16c4-79bc-4687-ba4b-63b9127298e7" />
+<img width="1882" height="918" alt="Screenshot 2025-10-11 141228" src="https://github.com/user-attachments/assets/ae725408-9113-49be-ac10-917a7a1e4014" />
+<img width="1888" height="921" alt="Screenshot 2025-10-11 141216" src="https://github.com/user-attachments/assets/b16cb053-484a-4608-8bc8-cb12e87f8752" />
+<img width="1888" height="1012" alt="Screenshot 2025-10-11 141109" src="https://github.com/user-attachments/assets/217e9b42-f184-4637-84ad-d4f181aa76f4" />
+<img width="1883" height="928" alt="Screenshot 2025-10-11 141058" src="https://github.com/user-attachments/assets/854f5ede-eb71-4b45-b53a-3f451d8c3105" />
 <<<<<<< HEAD
 # Smart Campus Event Management System (SRM University)
 
