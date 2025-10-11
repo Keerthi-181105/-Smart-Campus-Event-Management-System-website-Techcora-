@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(STUDENT)
+  resetToken        String?
+  resetTokenExpires DateTime?
+  createdAt DateTime @default(now())
+  events    Event[]  @relation("OrganizerEvents")
+  regs      Registration[]
+  notes     Notification[]
+}
+
+model Event {
+  id           String         @id @default(cuid())
+  title        String
+  description  String
+  venue        String
+  category     String
+  startTime    DateTime
+  endTime      DateTime
+  capacity     Int
+  price        Float          @default(0)
+  priceType    String?        // free, paid, donation
+  imageUrl     String?        // event image/banner
+  organizer    User           @relation("OrganizerEvents", fields: [organizerId], references: [id])
+  organizerId  String
+  registrations Registration[]
+  analytics    Analytics?
+  createdAt    DateTime       @default(now())
+}
+
+model Registration {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  qrCode    String
+  timestamp DateTime @default(now())
+  status    RegStatus @default(CONFIRMED)
+
+  @@unique([userId, eventId])
+}
+
+model Analytics {
+  id                 String   @id @default(cuid())
+  event              Event    @relation(fields: [eventId], references: [id])
+  eventId            String   @unique
+  views              Int      @default(0)
+  registrationsCount Int      @default(0)
+  revenue            Float    @default(0)
+  createdAt          DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  message   String
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  STUDENT
+  ORGANIZER
+  ADMIN
+}
+
+enum RegStatus {
+  CONFIRMED
+  WAITLIST
+  CANCELLED
+}

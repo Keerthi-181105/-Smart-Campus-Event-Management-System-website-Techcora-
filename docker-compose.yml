@@ -1,0 +1,36 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: srm
+      POSTGRES_PASSWORD: srm
+      POSTGRES_DB: smartcampus
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+
+  backend:
+    build: ./backend
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://srm:srm@db:5432/smartcampus?schema=public
+    ports:
+      - '4000:4000'
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_URL: http://localhost:4000
+    ports:
+      - '5173:5173'
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
+

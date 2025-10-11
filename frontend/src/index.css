@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-gradient-to-br from-[#7c3aed] to-[#0f0f0f] text-white min-h-screen;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Poppins, Ubuntu, Cantarell, Noto Sans, sans-serif;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-black/40 backdrop-blur-md rounded-2xl shadow-soft border border-white/10;
+  }
+}
+

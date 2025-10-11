@@ -1,0 +1,30 @@
+openapi: 3.0.3
+info:
+  title: SRM Smart Campus API
+  version: 0.1.0
+servers:
+  - url: http://localhost:4000
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /api/auth/login:
+    post:
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        "200": { description: Token issued }
+
+
+
