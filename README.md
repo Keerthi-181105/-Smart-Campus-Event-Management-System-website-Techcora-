@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Smart Campus Event Management System (SRM University)
 
 A full-stack platform for students to discover and register for campus events, and for organizers to create and manage events with real-time updates and analytics.
@@ -89,3 +90,7 @@ docker compose up --build
 
 MIT
 
+=======
+# -Smart-Campus-Event-Management-System-website-Techcora-
+Smart Campus — a full-stack app for managing and registering campus events.
+>>>>>>> 4fbd706a5859af4313ec30d3963b9447bd42a8f2
