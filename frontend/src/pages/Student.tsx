@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback, memo } from "react";
 import { apiFetch } from "../lib/api";
 import { QRCodeCanvas } from "qrcode.react";
 
@@ -44,6 +44,85 @@ function priceTypeOf(price: number, explicit?: string | null) {
 function makeQrText(e: EventItem) {
   return `EventQR|${e.id}|${e.title}|${e.venue}|${e.startTime}`;
 }
+
+// Memoized QR Code Component for better performance
+const MemoizedQRCode = memo(
+  ({ value, size }: { value: string; size: number }) => (
+    <QRCodeCanvas value={value} size={size} />
+  )
+);
+
+// Memoized Event Card Component
+const EventCard = memo(
+  ({
+    event,
+    onRegister,
+    isRegistering,
+  }: {
+    event: EventItem;
+    onRegister: (event: EventItem) => void;
+    isRegistering: boolean;
+  }) => {
+    const handleClick = useCallback(() => {
+      onRegister(event);
+    }, [event, onRegister]);
+
+    return (
+      <div className="bg-white/25 backdrop-blur-md rounded-2xl shadow-lg overflow-hidden hover:scale-105 transition transform duration-300 cursor-pointer">
+        <img
+          src={event.imageUrl || "/default.jpg"}
+          alt={event.title}
+          className="h-48 w-full object-cover"
+          loading="lazy"
+        />
+        <div className="p-5">
+          <h2 className="text-xl font-bold text-white">{event.title}</h2>
+          <p className="text-sm text-gray-200 mt-1">{event.venue}</p>
+          <p className="text-sm text-gray-300 mt-2">{event.description}</p>
+          <p className="text-sm text-gray-300 mt-1">
+            🕒 {new Date(event.startTime).toLocaleTimeString()} -{" "}
+            {new Date(event.endTime).toLocaleTimeString()}
+          </p>
+          <p className="text-sm text-gray-300 mt-1">
+            💰 {priceTypeOf(event.price, event.priceType)}
+          </p>
+          <button
+            onClick={handleClick}
+            disabled={isRegistering}
+            className="mt-4 w-full py-2 rounded-lg bg-violet-700 hover:bg-violet-800 text-white font-semibold transition disabled:opacity-50"
+          >
+            {isRegistering ? "Registering..." : "Register"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+);
+
+// Memoized QR Code Display Component
+const QRCodeDisplay = memo(({ myEvents }: { myEvents: MyEvent[] }) => {
+  if (myEvents.length === 0) return null;
+
+  return (
+    <div className="mt-16">
+      <h2 className="text-3xl font-bold mb-6 text-white drop-shadow-lg">
+        🎫 Your Registered Event QR Codes
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        {myEvents.map((m) => (
+          <div
+            key={m.id}
+            className="p-6 bg-white/25 backdrop-blur-md rounded-2xl shadow-lg flex flex-col items-center hover:scale-105 transition transform duration-300"
+          >
+            <h3 className="text-xl font-bold text-white mb-3">{m.title}</h3>
+            <MemoizedQRCode value={m.qr} size={120} />
+            <p className="text-gray-200 mt-3">{m.venue}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+});
 
 export default function Student() {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -233,8 +312,11 @@ export default function Student() {
   }, []);
 
   const filtered = useMemo(() => {
+    if (!events.length) return [];
+
     return events.filter((e) => {
-      const matchesSearch = e.title.toLowerCase().includes(q.toLowerCase());
+      const matchesSearch =
+        !q || e.title.toLowerCase().includes(q.toLowerCase());
       const matchesCategory = !cat || e.category === cat;
       const matchesPrice =
         !priceType || priceTypeOf(e.price, e.priceType) === priceType;
@@ -242,12 +324,13 @@ export default function Student() {
     });
   }, [events, q, cat, priceType]);
 
-  const handleRegister = async (event: EventItem) => {
+  const handleRegister = useCallback(async (event: EventItem) => {
     setRegLoadingId(event.id);
     try {
       await apiFetch(`/api/events/${event.id}/register`, {
         method: "POST",
       }).catch(() => null);
+
       const qr = makeQrText(event);
       const newQr = {
         id: event.id,
@@ -257,15 +340,42 @@ export default function Student() {
         venue: event.venue,
         qr,
       };
-      const updated = [...myEvents, newQr];
-      setMyEvents(updated);
-      localStorage.setItem("registeredQRs", JSON.stringify(updated));
+
+      setMyEvents((prev) => {
+        const updated = [...prev, newQr];
+        localStorage.setItem("registeredQRs", JSON.stringify(updated));
+        return updated;
+      });
+
+      // Update organizer QR codes
       const orgQR = JSON.parse(localStorage.getItem("organizerQRs") || "[]");
       localStorage.setItem("organizerQRs", JSON.stringify([...orgQR, newQr]));
     } finally {
       setRegLoadingId(null);
     }
-  };
+  }, []);
+
+  // Memoized input handlers for better performance
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setQ(e.target.value);
+    },
+    []
+  );
+
+  const handleCategoryChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setCat(e.target.value);
+    },
+    []
+  );
+
+  const handlePriceTypeChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setPriceType(e.target.value);
+    },
+    []
+  );
 
   return (
     <div className="min-h-screen p-6 relative overflow-hidden">
@@ -282,12 +392,12 @@ export default function Student() {
           placeholder="Search events..."
           className="p-3 rounded-xl w-64 focus:outline-none focus:ring-2 focus:ring-white/70 text-white bg-white/20 placeholder-white/70 backdrop-blur-sm border border-white/40 transition"
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={handleSearchChange}
         />
         <select
           className="p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/70 text-white bg-white/20 border border-white/40 backdrop-blur-sm transition"
           value={cat}
-          onChange={(e) => setCat(e.target.value)}
+          onChange={handleCategoryChange}
         >
           <option value="">All Categories</option>
           {categories.map((c) => (
@@ -299,7 +409,7 @@ export default function Student() {
         <select
           className="p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/70 text-white bg-white/20 border border-white/40 backdrop-blur-sm transition"
           value={priceType}
-          onChange={(e) => setPriceType(e.target.value)}
+          onChange={handlePriceTypeChange}
         >
           <option value="">All Price Types</option>
           {priceTypes.map((t) => (
@@ -313,58 +423,17 @@ export default function Student() {
       {/* Event Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {filtered.map((e) => (
-          <div
+          <EventCard
             key={e.id}
-            className="bg-white/25 backdrop-blur-md rounded-2xl shadow-lg overflow-hidden hover:scale-105 transition transform duration-300 cursor-pointer"
-          >
-            <img
-              src={e.imageUrl || "/default.jpg"}
-              alt={e.title}
-              className="h-48 w-full object-cover"
-            />
-            <div className="p-5">
-              <h2 className="text-xl font-bold text-white">{e.title}</h2>
-              <p className="text-sm text-gray-200 mt-1">{e.venue}</p>
-              <p className="text-sm text-gray-300 mt-2">{e.description}</p>
-              <p className="text-sm text-gray-300 mt-1">
-                🕒 {new Date(e.startTime).toLocaleTimeString()} -{" "}
-                {new Date(e.endTime).toLocaleTimeString()}
-              </p>
-              <p className="text-sm text-gray-300 mt-1">
-                💰 {priceTypeOf(e.price, e.priceType)}
-              </p>
-              <button
-                onClick={() => handleRegister(e)}
-                disabled={regLoadingId === e.id}
-                className="mt-4 w-full py-2 rounded-lg bg-violet-700 hover:bg-violet-800 text-white font-semibold transition"
-              >
-                {regLoadingId === e.id ? "Registering..." : "Register"}
-              </button>
-            </div>
-          </div>
+            event={e}
+            onRegister={handleRegister}
+            isRegistering={regLoadingId === e.id}
+          />
         ))}
       </div>
 
       {/* QR Codes */}
-      {myEvents.length > 0 && (
-        <div className="mt-16">
-          <h2 className="text-3xl font-bold mb-6 text-white drop-shadow-lg">
-            🎫 Your Registered Event QR Codes
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {myEvents.map((m) => (
-              <div
-                key={m.id}
-                className="p-6 bg-white/25 backdrop-blur-md rounded-2xl shadow-lg flex flex-col items-center hover:scale-105 transition transform duration-300"
-              >
-                <h3 className="text-xl font-bold text-white mb-3">{m.title}</h3>
-                <QRCodeCanvas value={m.qr} size={120} />
-                <p className="text-gray-200 mt-3">{m.venue}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <QRCodeDisplay myEvents={myEvents} />
 
       {/* Tailwind custom animation */}
       <style>
