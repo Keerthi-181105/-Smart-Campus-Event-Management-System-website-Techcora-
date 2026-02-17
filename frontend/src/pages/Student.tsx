@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, useCallback, memo } from "react";
+import { useEffect, useMemo, useState, useCallback, memo, useRef } from "react";
 import { apiFetch } from "../lib/api";
 import { QRCodeCanvas } from "qrcode.react";
+import ScrollToTop from "../components/ScrollToTop";
 
 type EventItem = {
   id: string;
@@ -50,6 +51,21 @@ const MemoizedQRCode = memo(
   ({ value, size }: { value: string; size: number }) => (
     <QRCodeCanvas value={value} size={size} />
   )
+);
+
+// Loading Skeleton Component
+const EventSkeleton = () => (
+  <div className="bg-white/25 backdrop-blur-md rounded-2xl shadow-lg overflow-hidden animate-pulse">
+    <div className="h-48 w-full bg-white/30" />
+    <div className="p-5 space-y-3">
+      <div className="h-6 bg-white/30 rounded w-3/4" />
+      <div className="h-4 bg-white/30 rounded w-1/2" />
+      <div className="h-16 bg-white/30 rounded" />
+      <div className="h-4 bg-white/30 rounded w-2/3" />
+      <div className="h-4 bg-white/30 rounded w-1/3" />
+      <div className="h-10 bg-white/30 rounded mt-4" />
+    </div>
+  </div>
 );
 
 // Memoized Event Card Component
@@ -126,15 +142,37 @@ const QRCodeDisplay = memo(({ myEvents }: { myEvents: MyEvent[] }) => {
 
 export default function Student() {
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [cat, setCat] = useState<string>("");
   const [priceType, setPriceType] = useState<string>("");
   const [regLoadingId, setRegLoadingId] = useState<string | null>(null);
   const [myEvents, setMyEvents] = useState<MyEvent[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9;
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounce search input
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedQ(q);
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [q]);
 
   useEffect(() => {
     let ignore = false;
     (async () => {
+      setLoading(true);
       try {
         const data = await apiFetch("/api/events").catch(() => null);
         const stored = JSON.parse(localStorage.getItem("events") || "[]");
@@ -303,6 +341,10 @@ export default function Student() {
         }
       } catch (err) {
         console.error("Error loading events:", err);
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
       }
     })();
 
@@ -314,15 +356,29 @@ export default function Student() {
   const filtered = useMemo(() => {
     if (!events.length) return [];
 
-    return events.filter((e) => {
+    const results = events.filter((e) => {
       const matchesSearch =
-        !q || e.title.toLowerCase().includes(q.toLowerCase());
+        !debouncedQ || e.title.toLowerCase().includes(debouncedQ.toLowerCase()) ||
+        e.description.toLowerCase().includes(debouncedQ.toLowerCase());
       const matchesCategory = !cat || e.category === cat;
       const matchesPrice =
         !priceType || priceTypeOf(e.price, e.priceType) === priceType;
       return matchesSearch && matchesCategory && matchesPrice;
     });
-  }, [events, q, cat, priceType]);
+
+    // Reset to first page when filters change
+    setCurrentPage(1);
+    return results;
+  }, [events, debouncedQ, cat, priceType]);
+
+  // Paginated results
+  const paginatedEvents = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filtered.slice(startIndex, endIndex);
+  }, [filtered, currentPage]);
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
   const handleRegister = useCallback(async (event: EventItem) => {
     setRegLoadingId(event.id);
@@ -421,19 +477,82 @@ export default function Student() {
       </div>
 
       {/* Event Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {filtered.map((e) => (
-          <EventCard
-            key={e.id}
-            event={e}
-            onRegister={handleRegister}
-            isRegistering={regLoadingId === e.id}
-          />
-        ))}
-      </div>
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {[...Array(6)].map((_, i) => (
+            <EventSkeleton key={i} />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center text-white text-xl py-20">
+          <p className="text-4xl mb-4">🔍</p>
+          <p>No events found matching your filters</p>
+          <button
+            onClick={() => {
+              setQ("");
+              setCat("");
+              setPriceType("");
+            }}
+            className="mt-4 px-6 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition"
+          >
+            Clear Filters
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {paginatedEvents.map((e) => (
+              <EventCard
+                key={e.id}
+                event={e}
+                onRegister={handleRegister}
+                isRegistering={regLoadingId === e.id}
+              />
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-12">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white font-semibold transition"
+              >
+                ← Previous
+              </button>
+              <div className="flex gap-2">
+                {[...Array(totalPages)].map((_, i) => (
+                  <button
+                    key={i + 1}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`px-4 py-2 rounded-lg font-semibold transition ${
+                      currentPage === i + 1
+                        ? "bg-violet-600 text-white"
+                        : "bg-white/20 hover:bg-white/30 text-white"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white font-semibold transition"
+              >
+                Next →
+              </button>
+            </div>
+          )}
+        </>
+      )}
 
       {/* QR Codes */}
       <QRCodeDisplay myEvents={myEvents} />
+
+      {/* Scroll to Top Button */}
+      <ScrollToTop />
 
       {/* Tailwind custom animation */}
       <style>

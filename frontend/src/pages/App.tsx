@@ -144,10 +144,14 @@ function InfoCard({
   text: string;
 }) {
   return (
-    <div className="p-6 bg-black/50 border border-white/10 rounded-2xl backdrop-blur-sm hover:bg-black/60 transition">
-      <div className="mb-3">{icon}</div>
+    <motion.div
+      whileHover={{ scale: 1.05, y: -5 }}
+      transition={{ duration: 0.2 }}
+      className="p-6 bg-black/50 border border-white/10 rounded-2xl backdrop-blur-sm hover:bg-black/60 hover:border-violet-400/30 transition cursor-pointer"
+    >
+      <div className="mb-3 text-3xl">{icon}</div>
       <div className="font-semibold text-lg mb-1">{title}</div>
       <div className="text-white/70 text-sm">{text}</div>
-    </div>
+    </motion.div>
   );
 }

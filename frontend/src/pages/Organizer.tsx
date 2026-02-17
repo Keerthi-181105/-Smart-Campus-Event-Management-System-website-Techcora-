@@ -12,6 +12,24 @@ import {
 } from "recharts";
 import { Edit3, Trash2, PlusCircle, Save, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import ScrollToTop from "../components/ScrollToTop";
+
+// Loading Skeleton Component
+const EventCardSkeleton = () => (
+  <div className="card p-0 overflow-hidden animate-pulse">
+    <div className="h-40 bg-gray-700/50" />
+    <div className="p-4 space-y-3">
+      <div className="h-5 bg-gray-700/50 rounded w-3/4" />
+      <div className="h-4 bg-gray-700/50 rounded w-full" />
+      <div className="h-4 bg-gray-700/50 rounded w-1/2" />
+      <div className="h-4 bg-gray-700/50 rounded w-2/3" />
+      <div className="flex gap-2 mt-3">
+        <div className="h-10 bg-gray-700/50 rounded flex-1" />
+        <div className="h-10 bg-gray-700/50 rounded flex-1" />
+      </div>
+    </div>
+  </div>
+);
 
 type EventItem = {
   id: string;
@@ -33,7 +51,14 @@ export default function Organizer() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<EventItem>>({});
+  const [notification, setNotification] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  // Show notification helper
+  const showNotification = (message: string) => {
+    setNotification(message);
+    setTimeout(() => setNotification(null), 3000);
+  };
 
   // ✅ Load events and merge with localStorage organizer QR counts
   useEffect(() => {
@@ -85,6 +110,7 @@ export default function Organizer() {
       const updated = events.filter((e) => e.id !== id);
       setEvents(updated);
       localStorage.setItem("events", JSON.stringify(updated));
+      showNotification("Event deleted successfully");
     }
   }
 
@@ -114,6 +140,7 @@ export default function Organizer() {
       localStorage.setItem("events", JSON.stringify(updated));
       setEditingId(null);
       setEditData({});
+      showNotification("Event updated successfully");
     }
   }
 
@@ -136,7 +163,19 @@ export default function Organizer() {
   }));
 
   return (
-    <div className="p-6">
+    <div className="p-6 relative">
+      {/* Notification Toast */}
+      {notification && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className="fixed top-4 right-4 z-50 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg"
+        >
+          ✓ {notification}
+        </motion.div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Organizer Dashboard</h1>
@@ -172,9 +211,22 @@ export default function Organizer() {
       {/* Event List */}
       <h2 className="text-lg font-semibold mt-10 mb-4">📅 Your Events</h2>
       {loading ? (
-        <p>Loading events...</p>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <EventCardSkeleton key={i} />
+          ))}
+        </div>
       ) : events.length === 0 ? (
-        <p>No events created yet.</p>
+        <div className="text-center py-20">
+          <p className="text-6xl mb-4">📋</p>
+          <p className="text-xl mb-4">No events created yet.</p>
+          <button
+            onClick={handleCreate}
+            className="px-6 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl transition"
+          >
+            Create Your First Event
+          </button>
+        </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {events.map((e) => (
@@ -288,6 +340,9 @@ export default function Organizer() {
           ))}
         </div>
       )}
+      
+      {/* Scroll to Top Button */}
+      <ScrollToTop />
     </div>
   );
 }

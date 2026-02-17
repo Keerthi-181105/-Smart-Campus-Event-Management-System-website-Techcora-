@@ -13,11 +13,57 @@
     @apply bg-gradient-to-br from-[#7c3aed] to-[#0f0f0f] text-white min-h-screen;
     font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Poppins, Ubuntu, Cantarell, Noto Sans, sans-serif;
   }
+  
+  /* Optimize rendering performance */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Smooth transitions */
+  button, a, input, select, textarea {
+    transition: all 0.2s ease-in-out;
+  }
 }
 
 @layer components {
   .card {
     @apply bg-black/40 backdrop-blur-md rounded-2xl shadow-soft border border-white/10;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-black/20;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-violet-600/50 rounded-full hover:bg-violet-500;
+  }
+  
+  /* Loading animation */
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+  
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%
+    );
+    background-size: 1000px 100%;
   }
 }
 

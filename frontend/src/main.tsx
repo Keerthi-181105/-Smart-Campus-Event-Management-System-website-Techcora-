@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Analytics from "./pages/Analytics";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const NotFound: React.FC = () => (
   <div className="flex flex-col items-center justify-center h-screen bg-black text-violet-400">
@@ -43,6 +44,8 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <ErrorBoundary>
+      <RouterProvider router={router} />
+    </ErrorBoundary>
   </React.StrictMode>
 );
