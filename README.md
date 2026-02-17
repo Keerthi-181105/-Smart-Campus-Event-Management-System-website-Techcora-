@@ -1,6 +1,4 @@
-## 🌐 Live Demo
 
-[Click here to view the website](https://keerthi-181105.github.io/Smart-Campus-Event-Management-System-website-Techcora/)
 
 # Smart Campus Event Management System (SRM University)
 
